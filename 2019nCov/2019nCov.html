@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=IDvNBsejl9oqMbPF316iKsXR"></script>
+<script src="http://libs.baidu.com/jquery/1.9.0/jquery.js"></script>
+<script src="data.js"></script>
+<title>光谷周边疫情统计</title>
+
+<style>
+body{
+  padding:0;
+  margin:0;
+  background-color:#eee;
+}
+.banner{
+  width:100%;
+  margin:0;
+  padding:0;
+}
+.item{
+  width:100%;
+  height:auto;
+  box-sizing:border-box;
+  margin-bottom:10px;
+  padding:10px;
+  background-color:#fff;
+}
+.title{
+  margin-bottom:10px;
+  position:relative;
+  display:flex;
+}
+.title:before{
+  content:"";
+  display:block;
+  bottom:10px;
+  margin-right:10px;
+  width:6px;
+  background-color:#02A8FE;
+}
+#allmap{
+  width:100%;
+  box-sizing:border-box;
+  height:300px;
+  border:1px solid #ddd;
+}
+#tab{
+  display:block;
+  width:100%;
+  height:300px;
+  overflow-y:auto;
+  font-size:12px;
+  /*word-break:keep-all;
+  white-space:nowrap;
+  overflow-x:auto;*/
+  border-collapse: collapse; 
+}
+#tab td{
+  border:0px;
+  width:fit-content;
+  text-align:center;
+  border:1px solid #F2F2F2;
+  padding:6px;
+}
+#tab tr:nth-child(1){
+  background-color:#C63942!important;
+  color:#fff!important;
+  font-weight:bold;
+}
+/*
+#tab tr:nth-child(even){
+  background-color:#fff;
+}
+#tab td:nth-child(1){
+  color:#000;
+}
+#tab td:nth-child(2){
+  color:#F55253;
+}
+#tab td:nth-child(3){
+  color:#FE9721;
+}
+#tab td:nth-child(4){
+  color:#67666C;
+}*/
+#tab tr:nth-child(odd){
+  background-color:#F9F9F9;
+}
+.BMap_cpyCtrl {
+  display: none;
+}
+/*a{
+  color:inherit;
+  text-direction:none;
+}*/
+
+.datablock{
+  border-radius:4px;
+  overflow:hidden;
+  margin:10px 0;
+  display:grid;
+  grid-gap:2px;
+  font-size:8px!important;
+  grid-template-columns:1fr 1fr 1fr 1fr;
+  }
+.info{
+  display:grid;
+  grid-gap:4px;
+  grid-template-columns:100%;
+  grid-template-rows:1fr 1fr;
+  padding:6px 0 2px;
+  }
+.info p{
+  margin:0;
+  text-align:center;
+  }
+.info p:first-child{
+  font-weight:bold;
+  font-size:12px!important;
+  }
+.sure{
+  background-color:#FDF1F1;
+  }
+.sure p:first-child{
+  color:#CC1E1F;
+  }
+.suspect{
+  background-color:#FFF5E9;
+  }
+.suspect p:first-child{
+  color:#F48A12;
+  }
+.cure{
+  background-color:#F1F7F3;
+  }
+.cure p:first-child{
+  color:#188B50;
+  }
+
+.died{
+  background-color:#F2F6F9;
+  }
+.died p:first-child{
+  color:#4E5A66;
+  }
+
+
+@media screen and (min-width:361px) {
+  .main{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<img class="banner" src="https://images.cnblogs.com/cnblogs_com/gshang/1609278/o_20021218584902-57-57-20200213-025751-23a9.png"/>
+
+<div class="main">
+
+<div class="item">
+<div class="title">疫情地图</div>
+<div id="allmap"></div>
+<p style="color:#999;font-size:14px;">提示:点击坐标查看该位置疫情</p>
+</div>
+
+<div class="item">
+<div class="title">疫情统计</div>
+<table id="tab">
+<tr>
+<td>小区地址</td>
+<td>累计确诊</td>
+<td>累计疑似</td>
+<td>累计治愈</td>
+<td>累计死亡</td>
+<td>更新时间</td>
+</tr>
+</table>
+<p style="color:#999;font-size:14px;">说明:数据整理自 <a href="https://mp.weixin.qq.com/s/AyYWKd87591TZK-wOsEFRA">光谷要闻</a></p>
+</div>
+
+</div>
+</body>
+</html>
+
+
+<script type="text/javascript">
+// 百度地图API功能
+map = new BMap.Map("allmap",{mapType:BMAP_NORMAL_MAP});
+// 百度坐标系坐标(地图中需要使用这个)
+var bPoints = new Array();
+//设置中心点
+map.centerAndZoom(new BMap.Point(114.311586,30.598467), 15);
+//向地图中添加比例尺控件
+var ctrl_sca = new BMap.ScaleControl({anchor:BMAP_ANCHOR_BOTTOM_LEFT});
+map.addControl(ctrl_sca);
+
+// 添加带有定位的导航控件
+var navigationControl = new BMap.NavigationControl({
+  // 靠左上角位置
+  anchor: BMAP_ANCHOR_TOP_LEFT,
+  // LARGE类型
+  type: BMAP_NAVIGATION_CONTROL_LARGE,
+  // 启用显示定位
+  enableGeolocation: true
+});
+map.addControl(navigationControl);
+// 添加定位控件
+var geolocationControl = new BMap.GeolocationControl();
+geolocationControl.addEventListener("locationSuccess", function (e) {
+    // 定位成功事件
+    var address = '';
+    address += e.addressComponent.province;
+    address += e.addressComponent.city;
+    address += e.addressComponent.district;
+    address += e.addressComponent.street;
+    address += e.addressComponent.streetNumber;
+    //alert("当前定位地址为：" + address);
+  });
+  geolocationControl.addEventListener("locationError", function (e) {
+      // 定位失败事件
+      alert(e.message);
+    });
+    map.addControl(geolocationControl);
+
+
+    //信息窗口样式
+    var opts = {
+      width : 200, // 信息窗口宽度
+      height: 110, // 信息窗口高度
+      title : "小区疫情" , // 信息窗口标题
+      enableMessage:true//设置允许信息窗发送短息
+    };
+    addMarker(data_info);
+
+    //创建标注点并添加到
+    function addMarker(data_info){
+        //循环建立标注点
+        for(var i=0;i<data_info.length;i++){
+
+          var point = new BMap.Point(data_info[i][0],data_info[i][1]); //将标注点转化成地图上的点
+          bPoints.push(point); // 添加到百度坐标数组 用于自动调整缩放级别
+          var marker = new BMap.Marker(point); // 创建标注
+          var content = 
+          "<div style='font-size:10px;'>"+
+          "<div class='datablock'>"+
+          "<div class='info sure'><p>" + data_info[i][3] + "</p><p>累计确诊</p></div>"+
+          "<div class='info suspect'><p>" + data_info[i][4] + "</p><p>累计疑似</p></div>"+
+          "<div class='info cure'><p>" + data_info[i][5] + "</p><p>累计治愈</p></div>"+
+          "<div class='info died'><p>" + data_info[i][6] + "</p><p>累计死亡</p></div>"+
+          "</div>"+
+          "小区地址：" + data_info[i][2] + "<br/>更新时间：" + data_info[i][7] + "</div>";
+          map.addOverlay(marker); // 将标注添加到地图中
+          addClickHandler(content,marker);
+        }
+      }
+
+      function addClickHandler(content,marker){
+          marker.addEventListener("click",function(e){
+              openInfo(content,e)}
+            );
+          }
+          function openInfo(content,e){
+              var p = e.target;
+              var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
+              var infoWindow = new BMap.InfoWindow(content,opts); // 创建信息窗口对象
+              map.openInfoWindow(infoWindow,point); //开启信息窗口
+            }
+            // 根据点的数组自动调整缩放级别
+            function setZoom(bPoints) {
+                var view = map.getViewport(eval(bPoints));
+                var mapZoom = view.zoom;
+                var centerPoint = view.center;
+                map.centerAndZoom(centerPoint, mapZoom);
+              }
+              map.addControl(new BMap.MapTypeControl());
+              map.enableScrollWheelZoom(true);
+              setTimeout(function () {
+                  setZoom(bPoints);
+                }, 1000)
+                </script>
+
+                <script>
+                $(document).ready(function() {
+                    var s = "";
+                    for(var i = 0; i < data_info.length; i++) {
+                      s = "<tr><td>" + data_info[i][2] + "</td><td>" + data_info[i][3]+ "</td><td>" +
+                      data_info[i][4]+ "</td><td>" + data_info[i][5]+ "</td><td>" + data_info[i][6]+ "</td><td>" + data_info[i][7]+"</td></tr>";
+                      $("#tab").append(s);
+                    }
+                  });
+                  </script>
